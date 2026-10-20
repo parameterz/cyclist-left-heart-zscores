@@ -10,6 +10,14 @@ A browser calculator for percent-predicted values and Z-scores of left heart str
 
 Herrera-Leaño N, Malhotra A, Cooper R, Robinson S, Ramcharan T, Maxwell J, Place F, George K, Jones N, Khoury P, Ashley EA, Haddad F, Oxborough D. Allometric scaling of left heart structure and function in elite cyclists: development of sport-specific prediction equations. *J Am Heart Assoc.* 2026;15:e050142. [doi:10.1161/JAHA.126.050142](https://doi.org/10.1161/JAHA.126.050142)
 
+## Features
+
+- Predicted value, percent predicted, Z-score and percentile for nine left heart measurements.
+- Normal range (Z ±1.96) in the measurement's own units, on each bar and in the calculation panel.
+- Step-by-step calculation for any measurement.
+- **Print report:** a one-page summary with demographics, measured values, normal ranges and Z-scores.
+- **Copy report text:** the same summary as plain text, to paste into an echo report.
+
 ## How it works
 
 ```
@@ -38,7 +46,7 @@ index.html          page markup
 css/styles.css      styles (light and dark)
 js/equations.js     coefficients as data; Table S3 alternates in `alt`
 js/zscore.js        pure calculation functions
-js/app.js           UI
+js/app.js           UI, printable report and copy-to-text
 vendor/rough.esm.js rough.js 4.6.6 (MIT), for the sketched Z-bars
 tests/              node:test checks against values from the paper
 docs/               equation audit

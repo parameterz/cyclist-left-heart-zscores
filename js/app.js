@@ -1,7 +1,7 @@
 // UI: athlete inputs, the measurement ledger, sketched Z-bars and the calculation panel.
 import rough from "../vendor/rough.esm.js";
 import { EQUATIONS, STATUS } from "./equations.js";
-import { evaluate, normalCdf } from "./zscore.js";
+import { evaluate, normalCdf, percentPredictedAtZ } from "./zscore.js";
 
 const $ = (s) => document.querySelector(s);
 const fmt = (x, d) => (Number.isFinite(x) ? x.toFixed(d) : "—");
@@ -39,8 +39,8 @@ function put(svg, cls, node) {
   return g;
 }
 // rough.js strokes use currentColor, so each group takes its colour from the theme tokens.
-function drawBar(svg, z, za, seed) {
-  const W = Math.max(120, svg.clientWidth || 200), H = 34, pad = 9, cy = 16;
+function drawBar(svg, z, za, seed, lims) {
+  const W = Math.max(120, svg.clientWidth || 200), H = 46, pad = 9, cy = 16;
   const X = (v) => pad + ((Math.max(Z0, Math.min(Z1, v)) - Z0) / (Z1 - Z0)) * (W - 2 * pad);
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.replaceChildren();
@@ -63,7 +63,20 @@ function drawBar(svg, z, za, seed) {
       svg.appendChild(t);
     }
   }
+  // Absolute values at the edges of the central 95%, handwritten under the band.
+  if (lims) {
+    for (const [v, zz] of [[lims.lo, -1.96], [lims.hi, 1.96]]) {
+      const t = el("text", { x: X(zz), y: H - 3, "text-anchor": "middle", class: "lim" });
+      t.textContent = fmt(v, lims.dp);
+      svg.appendChild(t);
+    }
+  }
 }
+
+/** Absolute values that correspond to a given Z for this equation and predicted value. */
+const valueAtZ = (e, mu, z) => (mu * percentPredictedAtZ(e, z)) / 100;
+const limits = (e, mu) => Number.isFinite(mu) && mu > 0
+  ? { lo: valueAtZ(e, mu, -1.96), hi: valueAtZ(e, mu, 1.96), dp: e.dp } : null;
 function drawLegend() {
   const mk = (id, cls, fn) => {
     const s = $("#" + id);
@@ -148,7 +161,7 @@ function render() {
     zEl.textContent = sgn(r.z);
     zEl.className = "zval" + (r.z > 1.96 ? " hi" : r.z < -1.96 ? " lo" : "");
     $("#za-" + e.id).textContent = ra && Number.isFinite(ra.z) ? `S3 ${sgn(ra.z)}` : "";
-    drawBar($("#b-" + e.id), r.z, ra ? ra.z : NaN, i * 20 + 3);
+    drawBar($("#b-" + e.id), r.z, ra ? ra.z : NaN, i * 20 + 3, limits(e, r.predicted));
     document.querySelector(`.prow[data-id="${e.id}"]`).classList.toggle("sel", state.sel === e.id);
   });
   renderMath(ath);
@@ -164,6 +177,24 @@ function termStr(e, override = {}) {
   return parts.join(" × ");
 }
 
+// Reference values in the athlete's own units: each Z mapped back through μ.
+function rangeBlock(e, r) {
+  const lim = limits(e, r.predicted);
+  if (!lim) return "";
+  const rows = [
+    { z: -1.96, label: "2.5th", lim: true }, { z: -1.645, label: "5th" }, { z: 0, label: "50th" },
+    { z: 1.645, label: "95th" }, { z: 1.96, label: "97.5th", lim: true },
+  ].map((x) => ({ ...x, pp: percentPredictedAtZ(e, x.z), v: valueAtZ(e, r.predicted, x.z) }));
+  if (Number.isFinite(r.z)) {
+    rows.push({ z: r.z, label: ord(100 * normalCdf(r.z)), pp: r.percentPredicted, v: r.measured, you: true });
+    rows.sort((p, q) => p.z - q.z);
+  }
+  return `<p class="rangeline">Normal range (Z ±1.96): <b>${fmt(lim.lo, e.dp)} – ${fmt(lim.hi, e.dp)} ${e.unit}</b></p>
+  <table class="ztable"><thead><tr><th>Percentile</th><th>Z</th><th>% pred</th><th>${e.abbr} (${e.unit})</th></tr></thead><tbody>${
+    rows.map((x) => `<tr class="${x.lim ? "lim" : ""}${x.you ? " you" : ""}"><td>${x.you ? "This athlete" : x.label}</td><td>${sgn(x.z)}</td><td>${x.pp.toFixed(0)}%</td><td>${fmt(x.v, e.dp)}</td></tr>`).join("")
+  }</tbody></table>`;
+}
+
 function renderMath(ath) {
   const e = EQUATIONS.find((x) => x.id === state.sel);
   const r = evaluate(e, state.values[e.id], ath);
@@ -177,7 +208,8 @@ function renderMath(ath) {
     <dt>ln(y/μ)</dt><dd>${fmt(r.lnRatio, 4)}</dd>
     <dt>Z</dt><dd>${e.k} × ${fmt(r.lnRatio, 4)} = <b>${sgn(r.z)}</b></dd>
     <dt>Percentile</dt><dd>${Number.isFinite(r.z) ? ord(100 * normalCdf(r.z)) : "—"}</dd>
-  </dl>`;
+  </dl>
+  ${rangeBlock(e, r)}`;
   if (ra) {
     html += `<div class="issue"><span><b>Open question.</b> ${e.issue}</span>
       <table class="cmp"><thead><tr><th>Source</th><th>μ</th><th class="num">Predicted</th><th class="num">% pred</th><th class="num">Z</th></tr></thead><tbody>
@@ -210,6 +242,100 @@ $("#hrmode").addEventListener("click", () => {
   if (state.hrMode === "bpm") { state.hrMode = "ms"; h.step = "10"; }
   else { state.hrMode = "bpm"; h.step = "1"; }
   render();
+});
+
+/* ---------- report ---------- */
+function reportData() {
+  const ath = athlete();
+  const rows = EQUATIONS.map((e) => ({ e, r: evaluate(e, state.values[e.id], ath) }))
+    .filter(({ r }) => Number.isFinite(r.z))
+    .map(({ e, r }) => ({ e, r, lim: limits(e, r.predicted), pct: 100 * normalCdf(r.z) }));
+  const date = $("#rep-date").value;
+  return {
+    ath, rows,
+    id: $("#rep-id").value.trim(),
+    date: date ? new Date(date + "T00:00").toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" }) : "",
+    sex: state.sex === "M" ? "Male" : "Female",
+    disc: state.disc === "E" ? "Endurance" : "Sprint",
+    height: `${fmt(ath.heightM * 100, 1)} cm`,
+    hr: `${fmt(ath.hr, 0)} bpm (RR ${fmt(ath.rrSec, 3)} s)`,
+    pending: rows.some(({ e }) => e.status === "open"),
+  };
+}
+
+function reportText() {
+  const d = reportData();
+  const lines = ["Left heart Z-scores, elite cyclist reference (Herrera-Leaño et al., J Am Heart Assoc 2026)"];
+  if (d.id || d.date) lines.push([d.id, d.date].filter(Boolean).join(" · "));
+  lines.push(`${d.sex}, ${d.disc.toLowerCase()}; height ${d.height}; HR ${d.hr}`, "");
+  for (const { e, r, lim, pct } of d.rows) {
+    const flag = e.status === "open" ? "*" : "";
+    lines.push(`${e.abbr}${flag} ${fmt(r.measured, e.dp)} ${e.unit}: Z ${sgn(r.z)} (${ord(pct)} percentile), ${r.percentPredicted.toFixed(0)}% of predicted ${fmt(r.predicted, e.dp)}; normal ${fmt(lim.lo, e.dp)}–${fmt(lim.hi, e.dp)}`);
+  }
+  if (!d.rows.length) lines.push("No measurements entered.");
+  lines.push("", "Normal = Z −1.96 to +1.96 (2.5th–97.5th percentile).");
+  if (d.pending) lines.push("* Equation coefficients pending confirmation by the authors.");
+  return lines.join("\n");
+}
+
+function miniBar(z) {
+  const X = (v) => 4 + ((Math.max(Z0, Math.min(Z1, v)) - Z0) / (Z1 - Z0)) * 122;
+  return `<svg viewBox="0 0 130 14" aria-hidden="true"><rect x="${X(-1.96)}" y="3" width="${X(1.96) - X(-1.96)}" height="8" fill="#dfe5ea"/>
+    <line x1="4" y1="7" x2="126" y2="7" stroke="#888" stroke-width=".6"/><line x1="${X(0)}" y1="2" x2="${X(0)}" y2="12" stroke="#888" stroke-width=".6"/>
+    <circle cx="${X(z)}" cy="7" r="3.6" fill="${Math.abs(z) > 1.96 ? "#000" : "#fff"}" stroke="#000" stroke-width="1"/></svg>`;
+}
+
+function buildReport() {
+  const d = reportData();
+  const demo = [["Athlete / ID", d.id || "—"], ["Exam date", d.date || "—"], ["Sex", d.sex], ["Discipline", d.disc],
+    ["Height", d.height], ["Heart rate", d.hr]];
+  $("#report").innerHTML = `
+    <h1>Left heart Z-scores · elite cyclist reference</h1>
+    <p class="sub">Herrera-Leaño N, … Oxborough D. J Am Heart Assoc. 2026;15:e050142. doi:10.1161/JAHA.126.050142</p>
+    <dl class="demo">${demo.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
+    <table>
+      <thead><tr><th>Measurement</th><th>Measured</th><th>Predicted</th><th>Normal range</th><th>% pred</th><th>Z</th><th>Percentile</th><th>−3 · 0 · +3</th></tr></thead>
+      <tbody>${d.rows.length ? d.rows.map(({ e, r, lim, pct }) => `<tr>
+        <td>${e.name}${e.status === "open" ? " *" : ""}</td>
+        <td>${fmt(r.measured, e.dp)} ${e.unit}</td>
+        <td>${fmt(r.predicted, e.dp)}</td>
+        <td>${fmt(lim.lo, e.dp)} – ${fmt(lim.hi, e.dp)}</td>
+        <td>${r.percentPredicted.toFixed(0)}%</td>
+        <td class="${Math.abs(r.z) > 1.96 ? "flag" : ""}">${sgn(r.z)}</td>
+        <td>${ord(pct)}</td>
+        <td class="bar">${miniBar(r.z)}</td></tr>`).join("") : `<tr><td colspan="8">No measurements entered.</td></tr>`}</tbody>
+    </table>
+    <div class="notes">
+      <span>Normal range = Z −1.96 to +1.96 (2.5th–97.5th percentile of healthy elite cyclists of the same height, sex, discipline and heart rate). Filled markers fall outside it.</span>
+      ${d.pending ? "<span>* Equation coefficients pending confirmation by the authors.</span>" : ""}
+      <span>Reference population: 181 elite British cyclists, age 22.7 ± 5.5 years; biplane Simpson volumes, ASE linear LV mass, 2D PLAX diameters. May not apply to other populations or methods. Not a substitute for clinical judgment.</span>
+      <span>Generated ${new Date().toLocaleString()} · parameterz.github.io/cyclist-left-heart-zscores</span>
+    </div>`;
+}
+
+function setStatus(msg, ok = false) {
+  const st = $("#copy-status");
+  st.textContent = msg;
+  st.classList.toggle("ok", ok);
+}
+
+$("#rep-date").value = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in local time
+$("#btn-print").addEventListener("click", () => { buildReport(); window.print(); });
+window.addEventListener("beforeprint", buildReport);
+$("#btn-copy").addEventListener("click", async () => {
+  const text = reportText();
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus("Report text copied. Paste it into your report.", true);
+  } catch {
+    setStatus("Copy was blocked by the browser. Use Print report instead.");
+  }
+});
+$("#btn-clear").addEventListener("click", () => {
+  EQUATIONS.forEach((e) => { state.values[e.id] = NaN; $("#v-" + e.id).value = ""; });
+  setStatus("Measurements cleared. Enter the values you measured.");
+  render();
+  $("#v-" + EQUATIONS[0].id).focus();
 });
 
 buildRows();

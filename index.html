@@ -70,6 +70,22 @@
         <span class="hint">select a row to see the math →</span>
       </div>
     </div>
+    <div class="toolbar" aria-label="Report">
+      <div class="field">
+        <label for="rep-id">Athlete or study ID <span class="opt">optional</span></label>
+        <input type="text" id="rep-id" autocomplete="off" placeholder="e.g. initials or study number">
+      </div>
+      <div class="field">
+        <label for="rep-date">Exam date</label>
+        <input type="date" id="rep-date">
+      </div>
+      <div class="actions">
+        <button type="button" class="btn ghost" id="btn-clear">Clear measurements</button>
+        <button type="button" class="btn ghost" id="btn-copy">Copy report text</button>
+        <button type="button" class="btn" id="btn-print">Print report</button>
+      </div>
+      <p class="toolnote" id="copy-status" role="status">The report includes only the measurements you have entered. Nothing is saved or sent.</p>
+    </div>
   </section>
 
   <section class="lower">
@@ -80,7 +96,7 @@
       <p class="handnote">k is just 1/σ on the log scale</p>
       <p class="note">This is the familiar (value − mean) / SD, applied on the log scale: <span class="mono">Z = (ln y − ln μ) / σ</span>, so <span class="mono">k = 1/σ</span>. Here <i>y</i> is the measured value and <i>μ</i> the predicted value. Because the SD is proportional to the predicted size, one σ fits every athlete, and each Z corresponds to a fixed percent of predicted.</p>
       <p class="note"><span class="mono">μ = C · Height<sup>a</sup> · (male factor) · (endurance factor) · RR<sup>b</sup></span>, with height in metres and RR in seconds.</p>
-      <p class="note">The paper maps ln(% predicted) to Gaussian Z with an optimized piecewise-linear function. This mockup uses the single published slope; Table 5 percentiles agree with it to within about 0.1 Z.</p>
+      <p class="note">The paper maps ln(% predicted) to Gaussian Z with an optimized piecewise-linear function. This calculator uses the single published slope; Table 5 percentiles agree with it to within about 0.1 Z.</p>
     </div>
   </section>
 
@@ -111,5 +127,6 @@
     <p>Visual style after <a href="https://intro2echo.com" target="_blank" rel="noopener">The Heart by Ultrasound</a>. Sketched figures drawn with rough.js (MIT).</p>
   </footer>
 </div>
+<section id="report" class="report" aria-hidden="true"></section>
 </body>
 </html>

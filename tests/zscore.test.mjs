@@ -52,3 +52,10 @@ test("normal CDF", () => {
   close(normalCdf(1.96), 0.975, 1e-4, "Φ(1.96)");
   close(normalCdf(-1.645), 0.05, 1e-4, "Φ(−1.645)");
 });
+
+test("normal range in absolute units: LVEDV for the worked-example athlete", () => {
+  const ath = { heightM: 1.8, rrSec: 1.2, sex: "M", discipline: "E" };
+  const mu = predict(byId.lvedv, ath);
+  close((mu * percentPredictedAtZ(byId.lvedv, -1.96)) / 100, 128.2, 0.2, "lower limit");
+  close((mu * percentPredictedAtZ(byId.lvedv, 1.96)) / 100, 217.1, 0.2, "upper limit");
+});
