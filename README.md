@@ -14,6 +14,7 @@ Herrera-Leaño N, Malhotra A, Cooper R, Robinson S, Ramcharan T, Maxwell J, Plac
 
 - Predicted value, percent predicted, Z-score and percentile for nine left heart measurements.
 - Normal range (Z ±1.96) in the measurement's own units, on each bar and in the calculation panel.
+- Stroke volume, ejection fraction and cardiac output calculated from LVEDV, LVESV and heart rate, with a manual override.
 - Step-by-step calculation for any measurement.
 - **Print report:** a one-page summary with demographics, measured values, normal ranges and Z-scores.
 - **Copy report text:** the same summary as plain text, to paste into an echo report.

@@ -96,6 +96,7 @@
       <p class="handnote">k is just 1/σ on the log scale</p>
       <p class="note">This is the familiar (value − mean) / SD, applied on the log scale: <span class="mono">Z = (ln y − ln μ) / σ</span>, so <span class="mono">k = 1/σ</span>. Here <i>y</i> is the measured value and <i>μ</i> the predicted value. Because the SD is proportional to the predicted size, one σ fits every athlete, and each Z corresponds to a fixed percent of predicted.</p>
       <p class="note"><span class="mono">μ = C · Height<sup>a</sup> · (male factor) · (endurance factor) · RR<sup>b</sup></span>, with height in metres and RR in seconds.</p>
+      <p class="note">Stroke volume, ejection fraction and cardiac output fill in automatically from LVEDV, LVESV and heart rate, as in the paper. Type a value to use your own instead. Because they come from the same two volumes, their Z-scores tend to move together and are not independent findings.</p>
       <p class="note">The paper maps ln(% predicted) to Gaussian Z with an optimized piecewise-linear function. This calculator uses the single published slope; Table 5 percentiles agree with it to within about 0.1 Z.</p>
     </div>
   </section>
@@ -111,7 +112,7 @@
     <span class="eyebrow">Open questions for the authors</span>
     <ol class="qlist">
       <li><b>LV stroke volume:</b> RR<sup>0.27</sup> (Table 4) or no RR term (Table S3)?</li>
-      <li><b>Cardiac output:</b> constant 1.89 (Table 4) or 1.81 (Table S3)? Was an RR term tested? Validation mean Z was −0.59.</li>
+      <li><b>Cardiac output:</b> constant 1.89 (Table 4) or 1.81 (Table S3)? Was an RR term tested? Since CO = SV × HR and SV scales with RR<sup>0.27</sup>, CO should scale with roughly RR<sup>−0.73</sup>; its absence may explain the validation mean Z of −0.59.</li>
       <li><b>LV mass:</b> RR exponent 0.07 (Table 4) or 0.1 (Table S3)?</li>
       <li><b>LV diastolic diameter:</b> endurance factor 1.02 (Table S3) or none (Table 4)? At Table 1 cohort means both versions predict about 4% below the observed diameters.</li>
       <li><b>LV systolic diameter:</b> confirm Table 4 (24.02 · Ht<sup>0.6</sup> · 1.04 male, k = 10.57). The Table S3 row repeats the LVEDV terms.</li>

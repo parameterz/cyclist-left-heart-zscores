@@ -47,6 +47,10 @@ Observed/predicted at cohort means, against the S6 calibration constant:
 - LVd: predicted about 52–53 / 48–49 mm vs observed 55.0 / 50.5 mm. About 4% low, implying a cohort mean Z near +0.7, where Table S4 reports about 0.
 - LVs: predicted 35.5 / 32.4 vs 36.9 / 33.3 mm, about 3% low.
 
+## Derived values
+
+The paper calculated LVSV and LVEF from the biplane volumes. Table 1 and Table 6 are consistent with SV = EDV − ESV exactly (men 159.4 − 67.4 = 92.0 vs 91.8; women 119.4 − 47.1 = 72.3 vs 72.3; validation 161.9 − 70.6 = 91.3 vs 91.3) and with CO = SV × HR (validation 91.3 × 51 = 4.66 vs 4.6 L/min).
+
 ## Measurement methods (main text)
 
 Biplane Simpson LV volumes; LV mass by the ASE corrected linear formula; biplane LA volume; 2D parasternal long-axis LV diameters, inner edge to inner edge; GE Vivid with offline EchoPAC 204.
@@ -54,7 +58,7 @@ Biplane Simpson LV volumes; LV mass by the ASE corrected linear formula; biplane
 ## Open questions for the authors
 
 1. LVSV: RR^0.27 or no RR term?
-2. CO: constant 1.81 or 1.89? Was an RR or HR term considered (CO = SV × HR)?
+2. CO: constant 1.81 or 1.89? Was an RR or HR term considered? CO = SV × 60/RR and SV ∝ RR^0.27 imply CO ∝ RR^−0.73, so a model without RR should over-predict CO at low HR (negative Z), consistent with the validation mean Z of −0.59 (HR 51).
 3. LVd: endurance factor 1.02 or none? Why do the equations under-predict the Table 1 diameters by about 4%?
 4. LVM: RR exponent 0.07 or 0.1?
 5. Confirm LVs = 24.02 · Ht^0.6 · 1.04 (male), k = 10.57.

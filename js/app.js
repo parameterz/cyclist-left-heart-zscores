@@ -1,7 +1,7 @@
 // UI: athlete inputs, the measurement ledger, sketched Z-bars and the calculation panel.
 import rough from "../vendor/rough.esm.js";
 import { EQUATIONS, STATUS } from "./equations.js";
-import { evaluate, normalCdf, percentPredictedAtZ } from "./zscore.js";
+import { evaluate, normalCdf, percentPredictedAtZ, deriveFromVolumes } from "./zscore.js";
 
 const $ = (s) => document.querySelector(s);
 const fmt = (x, d) => (Number.isFinite(x) ? x.toFixed(d) : "—");
@@ -16,6 +16,37 @@ function ord(p) {
 
 const state = { sex: "M", disc: "E", hUnit: "cm", hrMode: "bpm", sel: "lvedv", values: {} };
 EQUATIONS.forEach((e) => (state.values[e.id] = e.example));
+
+/* Values calculated from LVEDV, LVESV and heart rate unless the user types their own. */
+const DERIVED = {
+  lvsv: { key: "sv", how: "EDV − ESV" },
+  lvef: { key: "ef", how: "SV / EDV" },
+  co:   { key: "co", how: "SV × HR" },
+};
+state.manual = { lvsv: false, lvef: false, co: false };
+const isCalc = (id) => id in DERIVED && !state.manual[id];
+
+// Fill calculated values into state and their inputs. Runs at the start of every render.
+function applyDerived(ath) {
+  const edv = state.values.lvedv, esv = state.values.lvesv;
+  const d = deriveFromVolumes(edv, esv, ath.hr);
+  const why = !(edv > 0) || !(esv > 0) ? "Needs EDV and ESV, or type a value"
+    : esv >= edv ? "ESV must be below EDV" : "";
+  for (const [id, { key, how }] of Object.entries(DERIVED)) {
+    const e = EQUATIONS.find((x) => x.id === id);
+    const input = $("#v-" + id), note = $("#c-" + id);
+    if (state.manual[id]) {
+      input.classList.remove("is-calc");
+      note.innerHTML = d ? `entered · <button type="button" class="linkbtn" data-recalc="${id}">use calc</button>` : "entered";
+      continue;
+    }
+    const v = d ? d[key] : NaN;
+    state.values[id] = v;
+    input.value = Number.isFinite(v) ? v.toFixed(e.dp) : "";
+    input.classList.add("is-calc");
+    note.textContent = Number.isFinite(v) ? `calc · ${how}` : why;
+  }
+}
 
 function athlete() {
   const hv = parseFloat($("#height").value), hr = parseFloat($("#hr").value);
@@ -100,7 +131,8 @@ function buildRows() {
     row.tabIndex = 0;
     row.innerHTML = `
       <div class="pname c-name"><span class="t">${e.name}</span><span class="s">${e.abbr} · ${e.unit}</span><span class="pill ${e.status}">${STATUS[e.status]}</span></div>
-      <div class="c-inp"><input type="number" id="v-${e.id}" aria-label="${e.name} in ${e.unit}" step="${e.dp ? 0.1 : 1}" value="${e.example}" inputmode="decimal"></div>
+      <div class="c-inp"><input type="number" id="v-${e.id}" aria-label="${e.name} in ${e.unit}" step="${e.dp ? 0.1 : 1}" value="${e.example}" inputmode="decimal">${
+        e.id in DERIVED ? `<span class="calcnote" id="c-${e.id}" aria-live="polite"></span>` : ""}</div>
       <div class="r num c-pred" id="p-${e.id}"></div>
       <div class="r num c-pp" id="pp-${e.id}"></div>
       <div class="r num c-z"><span class="zval" id="z-${e.id}"></span><span class="alt" id="za-${e.id}"></span></div>
@@ -112,7 +144,21 @@ function buildRows() {
       if ((ev.key === "Enter" || ev.key === " ") && ev.target === row) { ev.preventDefault(); select(); }
     });
     const input = row.querySelector("input");
-    input.addEventListener("input", (ev) => { state.values[e.id] = parseFloat(ev.target.value); render(); });
+    input.addEventListener("input", (ev) => {
+      const v = parseFloat(ev.target.value);
+      // Typing in a calculated field makes it an entered value; clearing it goes back to calculated.
+      if (e.id in DERIVED) state.manual[e.id] = ev.target.value.trim() !== "";
+      state.values[e.id] = v;
+      render();
+    });
+    if (e.id in DERIVED) {
+      row.querySelector(".calcnote").addEventListener("click", (ev) => {
+        if (!ev.target.dataset.recalc) return;
+        ev.stopPropagation();
+        state.manual[e.id] = false;
+        render();
+      });
+    }
     input.addEventListener("focus", select);
   });
 }
@@ -151,6 +197,8 @@ function render() {
   }
   $("#rangewarn").hidden = !w.length;
   $("#rangewarn").innerHTML = w.join("<br>");
+
+  applyDerived(ath);
 
   EQUATIONS.forEach((e, i) => {
     const r = evaluate(e, state.values[e.id], ath);
@@ -195,6 +243,15 @@ function rangeBlock(e, r) {
   }</tbody></table>`;
 }
 
+function derivationStr(e, ath) {
+  if (!isCalc(e.id) || !Number.isFinite(state.values[e.id])) return "";
+  const edv = fmt(state.values.lvedv, 0), esv = fmt(state.values.lvesv, 0), sv = fmt(state.values.lvsv, 0);
+  if (e.id === "lvsv") return `${edv} − ${esv} = `;
+  if (e.id === "lvef") return `100 × ${fmt(state.values.lvedv - state.values.lvesv, 0)} / ${edv} = `;
+  if (e.id === "co") return `${fmt(state.values.lvedv - state.values.lvesv, 0)} mL × ${fmt(ath.hr, 0)} bpm / 1000 = `;
+  return "";
+}
+
 function renderMath(ath) {
   const e = EQUATIONS.find((x) => x.id === state.sel);
   const r = evaluate(e, state.values[e.id], ath);
@@ -203,7 +260,7 @@ function renderMath(ath) {
   let html = `<span class="eyebrow">Calculation</span><h3>${e.name}</h3><p class="note">${who}</p>
   <dl class="steps">
     <dt>Predicted μ</dt><dd>${termStr(e)} = <b>${fmt(r.predicted, e.dp + 1)} ${e.unit}</b></dd>
-    <dt>Measured y</dt><dd>${fmt(r.measured, e.dp)} ${e.unit}</dd>
+    <dt>${isCalc(e.id) ? "Calculated y" : "Measured y"}</dt><dd>${derivationStr(e, ath)}${fmt(r.measured, e.dp)} ${e.unit}</dd>
     <dt>% predicted</dt><dd>100 × ${fmt(r.measured, e.dp)} / ${fmt(r.predicted, e.dp + 1)} = <b>${fmt(r.percentPredicted, 1)}%</b></dd>
     <dt>ln(y/μ)</dt><dd>${fmt(r.lnRatio, 4)}</dd>
     <dt>Z</dt><dd>${e.k} × ${fmt(r.lnRatio, 4)} = <b>${sgn(r.z)}</b></dd>
@@ -249,7 +306,7 @@ function reportData() {
   const ath = athlete();
   const rows = EQUATIONS.map((e) => ({ e, r: evaluate(e, state.values[e.id], ath) }))
     .filter(({ r }) => Number.isFinite(r.z))
-    .map(({ e, r }) => ({ e, r, lim: limits(e, r.predicted), pct: 100 * normalCdf(r.z) }));
+    .map(({ e, r }) => ({ e, r, lim: limits(e, r.predicted), pct: 100 * normalCdf(r.z), calc: isCalc(e.id) }));
   const date = $("#rep-date").value;
   return {
     ath, rows,
@@ -260,6 +317,7 @@ function reportData() {
     height: `${fmt(ath.heightM * 100, 1)} cm`,
     hr: `${fmt(ath.hr, 0)} bpm (RR ${fmt(ath.rrSec, 3)} s)`,
     pending: rows.some(({ e }) => e.status === "open"),
+    anyCalc: rows.some(({ calc }) => calc),
   };
 }
 
@@ -268,12 +326,13 @@ function reportText() {
   const lines = ["Left heart Z-scores, elite cyclist reference (Herrera-Leaño et al., J Am Heart Assoc 2026)"];
   if (d.id || d.date) lines.push([d.id, d.date].filter(Boolean).join(" · "));
   lines.push(`${d.sex}, ${d.disc.toLowerCase()}; height ${d.height}; HR ${d.hr}`, "");
-  for (const { e, r, lim, pct } of d.rows) {
+  for (const { e, r, lim, pct, calc } of d.rows) {
     const flag = e.status === "open" ? "*" : "";
-    lines.push(`${e.abbr}${flag} ${fmt(r.measured, e.dp)} ${e.unit}: Z ${sgn(r.z)} (${ord(pct)} percentile), ${r.percentPredicted.toFixed(0)}% of predicted ${fmt(r.predicted, e.dp)}; normal ${fmt(lim.lo, e.dp)}–${fmt(lim.hi, e.dp)}`);
+    lines.push(`${e.abbr}${flag} ${fmt(r.measured, e.dp)} ${e.unit}${calc ? " (calc)" : ""}: Z ${sgn(r.z)} (${ord(pct)} percentile), ${r.percentPredicted.toFixed(0)}% of predicted ${fmt(r.predicted, e.dp)}; normal ${fmt(lim.lo, e.dp)}–${fmt(lim.hi, e.dp)}`);
   }
   if (!d.rows.length) lines.push("No measurements entered.");
   lines.push("", "Normal = Z −1.96 to +1.96 (2.5th–97.5th percentile).");
+  if (d.anyCalc) lines.push("(calc) = calculated from LVEDV, LVESV and heart rate.");
   if (d.pending) lines.push("* Equation coefficients pending confirmation by the authors.");
   return lines.join("\n");
 }
@@ -295,9 +354,9 @@ function buildReport() {
     <dl class="demo">${demo.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
     <table>
       <thead><tr><th>Measurement</th><th>Measured</th><th>Predicted</th><th>Normal range</th><th>% pred</th><th>Z</th><th>Percentile</th><th>−3 · 0 · +3</th></tr></thead>
-      <tbody>${d.rows.length ? d.rows.map(({ e, r, lim, pct }) => `<tr>
+      <tbody>${d.rows.length ? d.rows.map(({ e, r, lim, pct, calc }) => `<tr>
         <td>${e.name}${e.status === "open" ? " *" : ""}</td>
-        <td>${fmt(r.measured, e.dp)} ${e.unit}</td>
+        <td>${fmt(r.measured, e.dp)} ${e.unit}${calc ? "<sup>c</sup>" : ""}</td>
         <td>${fmt(r.predicted, e.dp)}</td>
         <td>${fmt(lim.lo, e.dp)} – ${fmt(lim.hi, e.dp)}</td>
         <td>${r.percentPredicted.toFixed(0)}%</td>
@@ -307,6 +366,7 @@ function buildReport() {
     </table>
     <div class="notes">
       <span>Normal range = Z −1.96 to +1.96 (2.5th–97.5th percentile of healthy elite cyclists of the same height, sex, discipline and heart rate). Filled markers fall outside it.</span>
+      ${d.anyCalc ? "<span><sup>c</sup> Calculated from LVEDV, LVESV and heart rate.</span>" : ""}
       ${d.pending ? "<span>* Equation coefficients pending confirmation by the authors.</span>" : ""}
       <span>Reference population: 181 elite British cyclists, age 22.7 ± 5.5 years; biplane Simpson volumes, ASE linear LV mass, 2D PLAX diameters. May not apply to other populations or methods. Not a substitute for clinical judgment.</span>
       <span>Generated ${new Date().toLocaleString()} · parameterz.github.io/cyclist-left-heart-zscores</span>
@@ -333,6 +393,7 @@ $("#btn-copy").addEventListener("click", async () => {
 });
 $("#btn-clear").addEventListener("click", () => {
   EQUATIONS.forEach((e) => { state.values[e.id] = NaN; $("#v-" + e.id).value = ""; });
+  Object.keys(state.manual).forEach((id) => (state.manual[id] = false));
   setStatus("Measurements cleared. Enter the values you measured.");
   render();
   $("#v-" + EQUATIONS[0].id).focus();

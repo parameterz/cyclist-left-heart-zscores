@@ -41,3 +41,19 @@ export function normalCdf(z) {
 }
 
 export const hrToRr = (bpm) => 60 / bpm;
+
+/**
+ * Stroke volume, ejection fraction and cardiac output from biplane LV volumes and heart rate,
+ * as in the paper ("LVEF and stroke volume were subsequently calculated").
+ * Returns null when the inputs can't give a physiological result.
+ * @returns {{sv:number, ef:number, co:number} | null}  SV mL, EF %, CO L/min (NaN if no HR)
+ */
+export function deriveFromVolumes(edv, esv, hrBpm) {
+  if (!(edv > 0) || !(esv > 0) || esv >= edv) return null;
+  const sv = edv - esv;
+  return {
+    sv,
+    ef: (100 * sv) / edv,
+    co: hrBpm > 0 ? (sv * hrBpm) / 1000 : NaN,
+  };
+}

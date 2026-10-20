@@ -62,7 +62,7 @@ export const EQUATIONS = [
   { id: "co", name: "Cardiac output", abbr: "CO", unit: "L/min", dp: 1,
     C: 1.89, a: 1.7, male: 1.06, end: 1.05, b: 0, k: 4.92, status: "open", example: 5.5,
     alt: { C: 1.81 },
-    issue: "Constant is 1.89 in Table 4 and 1.81 in Table S3. Neither version has an RR term, and the validation cohort mean Z was −0.59." },
+    issue: "Constant is 1.89 in Table 4 and 1.81 in Table S3. Neither version has an RR term, although CO = SV × 60/RR and SV scales with RR<sup>0.27</sup>, which implies CO ∝ RR<sup>−0.73</sup>. That may explain the validation cohort's low mean Z (−0.59) at a resting HR of 51 bpm." },
 
   { id: "lvm", name: "LV mass", abbr: "LVM", unit: "g", dp: 0,
     C: 50.99, a: 1.7, male: 1.22, end: 1.14, b: 0.07, k: 5.99, status: "open", example: 205,

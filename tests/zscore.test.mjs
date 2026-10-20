@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EQUATIONS } from "../js/equations.js";
-import { evaluate, predict, percentPredictedAtZ, normalCdf } from "../js/zscore.js";
+import { evaluate, predict, percentPredictedAtZ, normalCdf, deriveFromVolumes } from "../js/zscore.js";
 
 const byId = Object.fromEntries(EQUATIONS.map((e) => [e.id, e]));
 const close = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg}: ${a} vs ${b} (±${tol})`);
@@ -58,4 +58,22 @@ test("normal range in absolute units: LVEDV for the worked-example athlete", () 
   const mu = predict(byId.lvedv, ath);
   close((mu * percentPredictedAtZ(byId.lvedv, -1.96)) / 100, 128.2, 0.2, "lower limit");
   close((mu * percentPredictedAtZ(byId.lvedv, 1.96)) / 100, 217.1, 0.2, "upper limit");
+});
+
+test("derived SV, EF and CO from volumes and heart rate", () => {
+  const d = deriveFromVolumes(190, 80, 50);
+  close(d.sv, 110, 1e-9, "SV");
+  close(d.ef, 57.89, 0.01, "EF");
+  close(d.co, 5.5, 1e-9, "CO");
+  assert.equal(deriveFromVolumes(80, 190, 50), null, "ESV ≥ EDV");
+  assert.equal(deriveFromVolumes(NaN, 80, 50), null, "missing EDV");
+  assert.ok(Number.isNaN(deriveFromVolumes(190, 80, NaN).co), "no HR → no CO");
+});
+
+test("derivations reproduce the paper's cohort means (Table 1, Table 6)", () => {
+  close(deriveFromVolumes(159.4, 67.4, 60).sv, 91.8, 0.3, "men SV");
+  close(deriveFromVolumes(119.4, 47.1, 60).sv, 72.3, 0.1, "women SV");
+  const v = deriveFromVolumes(161.9, 70.6, 51);
+  close(v.sv, 91.3, 0.1, "validation SV");
+  close(v.co, 4.6, 0.1, "validation CO");
 });
