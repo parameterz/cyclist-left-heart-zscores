@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Elite Cyclist Heart Z-Scores</title>
+<meta name="description" content="Percent-predicted values and Z-scores for left heart size and function in elite cyclists, from the Herrera-Leaño / Oxborough allometric equations (JAHA 2026).">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Caveat:wght@400..700&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <div class="draft"><b>Mockup for author review</b><span>Coefficients for LV stroke volume, cardiac output, LV mass and LV diastolic diameter differ between Table 4 and Table S3; those rows show both versions. Not for clinical use.</span></div>
+
+  <header>
+    <span class="eyebrow">Sport-specific reference values · elite cyclists</span>
+    <h1>Left heart Z-scores for the <em>elite cyclist</em></h1>
+    <p class="lede">Allometric prediction equations scaled to height, with multiplicative factors for sex and discipline and an RR-interval term. Each measurement is reported as percent of predicted and as a Z-score.</p>
+    <p class="cite">Herrera-Leaño N, Malhotra A, Cooper R, … Haddad F, Oxborough D. <i>Allometric scaling of left heart structure and function in elite cyclists: development of sport-specific prediction equations.</i> J Am Heart Assoc. 2026;15:e050142. <a href="https://doi.org/10.1161/JAHA.126.050142" target="_blank" rel="noopener">doi:10.1161/JAHA.126.050142</a></p>
+  </header>
+
+  <section class="athlete" aria-label="Athlete">
+    <div class="field">
+      <span class="lbl" id="lbl-sex">Sex</span>
+      <div class="seg" role="group" aria-labelledby="lbl-sex">
+        <button type="button" id="sex-m" data-sex="M" aria-pressed="true">Male</button>
+        <button type="button" id="sex-f" data-sex="F" aria-pressed="false">Female</button>
+      </div>
+    </div>
+    <div class="field">
+      <span class="lbl" id="lbl-disc">Discipline</span>
+      <div class="seg" role="group" aria-labelledby="lbl-disc">
+        <button type="button" id="disc-e" data-disc="E" aria-pressed="true">Endurance</button>
+        <button type="button" id="disc-s" data-disc="S" aria-pressed="false">Sprint</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="height">Height</label>
+      <div class="inrow">
+        <input type="number" id="height" value="180" step="0.5" inputmode="decimal">
+        <button type="button" class="mini" id="hunit">cm</button>
+      </div>
+      <span class="derived" id="height-m"></span>
+    </div>
+    <div class="field">
+      <label for="hr" id="hr-label">Heart rate</label>
+      <div class="inrow">
+        <input type="number" id="hr" value="50" step="1" inputmode="decimal">
+        <button type="button" class="mini" id="hrmode">bpm</button>
+      </div>
+      <span class="derived" id="rr-derived"></span>
+    </div>
+    <div class="rangewarn" id="rangewarn" hidden></div>
+  </section>
+
+  <section aria-label="Measurements">
+    <div class="ledger">
+      <div class="lhead">
+        <span>Measurement</span><span class="r">Measured</span><span class="r">Predicted</span><span class="r">% pred</span><span class="r">Z</span><span>Z −3 to +3</span>
+      </div>
+      <div id="rows"></div>
+      <div class="legend">
+        <span><svg id="lg-dot" aria-hidden="true"></svg>Z (Table 4 coefficients)</span>
+        <span><svg id="lg-ghost" aria-hidden="true"></svg>Z with Table S3 coefficients, where they differ</span>
+        <span><svg id="lg-band" aria-hidden="true"></svg>Central 95% (Z ±1.96)</span>
+        <span class="hint">select a row to see the math →</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="lower">
+    <div class="panel" id="mathpanel" aria-live="polite"></div>
+    <div class="panel">
+      <span class="eyebrow">How the Z-score works</span>
+      <div class="formula"><i>Z</i> = <i>k</i> · ln(<i>y</i> / <i>μ</i>)</div>
+      <p class="handnote">k is just 1/σ on the log scale</p>
+      <p class="note">This is the familiar (value − mean) / SD, applied on the log scale: <span class="mono">Z = (ln y − ln μ) / σ</span>, so <span class="mono">k = 1/σ</span>. Here <i>y</i> is the measured value and <i>μ</i> the predicted value. Because the SD is proportional to the predicted size, one σ fits every athlete, and each Z corresponds to a fixed percent of predicted.</p>
+      <p class="note"><span class="mono">μ = C · Height<sup>a</sup> · (male factor) · (endurance factor) · RR<sup>b</sup></span>, with height in metres and RR in seconds.</p>
+      <p class="note">The paper maps ln(% predicted) to Gaussian Z with an optimized piecewise-linear function. This mockup uses the single published slope; Table 5 percentiles agree with it to within about 0.1 Z.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <span class="eyebrow">Coefficients</span>
+    <h2>Equation reference</h2>
+    <p class="note">Highlighted cells are where Table 4 and Table S3 disagree; the value shown first is Table 4.</p>
+    <div class="ref"><table id="reftable"></table></div>
+  </section>
+
+  <section class="panel">
+    <span class="eyebrow">Open questions for the authors</span>
+    <ol class="qlist">
+      <li><b>LV stroke volume:</b> RR<sup>0.27</sup> (Table 4) or no RR term (Table S3)?</li>
+      <li><b>Cardiac output:</b> constant 1.89 (Table 4) or 1.81 (Table S3)? Was an RR term tested? Validation mean Z was −0.59.</li>
+      <li><b>LV mass:</b> RR exponent 0.07 (Table 4) or 0.1 (Table S3)?</li>
+      <li><b>LV diastolic diameter:</b> endurance factor 1.02 (Table S3) or none (Table 4)? At Table 1 cohort means both versions predict about 4% below the observed diameters.</li>
+      <li><b>LV systolic diameter:</b> confirm Table 4 (24.02 · Ht<sup>0.6</sup> · 1.04 male, k = 10.57). The Table S3 row repeats the LVEDV terms.</li>
+      <li>Derivation cohort heart rate (mean, SD, range) and height range, for out-of-range warnings.</li>
+      <li>Should the piecewise-linear Gaussian mapping be implemented, and if so, what are its knots?</li>
+      <li>A few anonymized cases with expected Z-scores, to use as test cases.</li>
+    </ol>
+  </section>
+
+  <footer>
+    <p>Derivation cohort: 181 elite British cyclists (105 male, 76 female; 128 endurance, 53 sprint), age 22.7 ± 5.5 years. External validation: 62 elite male endurance cyclists. Measurements: biplane Simpson LV volumes, biplane LA volume, ASE corrected linear LV mass, 2D parasternal long-axis LV diameters. Equations may not apply to other populations, lower training volumes, or different measurement methods.</p>
+    <p>All calculation runs in your browser; nothing is stored or sent. Educational tool, not a substitute for clinical judgment.</p>
+    <p>Visual style after <a href="https://intro2echo.com" target="_blank" rel="noopener">The Heart by Ultrasound</a>. Sketched figures drawn with rough.js (MIT).</p>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "cyclist-left-heart-zscores",
+  "private": true,
+  "type": "module",
+  "description": "Z-score calculator for left heart structure and function in elite cyclists (Herrera-Leaño et al., JAHA 2026).",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python3 -m http.server 8000"
+  },
+  "license": "MIT"
+}
