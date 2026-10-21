@@ -18,6 +18,7 @@ Herrera-Leaño N, Malhotra A, Cooper R, Robinson S, Ramcharan T, Maxwell J, Plac
 - Step-by-step calculation for any measurement.
 - **Print report:** a one-page summary with demographics, measured values, normal ranges and Z-scores.
 - **Copy report text:** the same summary as plain text, to paste into an echo report.
+- **Provenance:** reports and copied text record the calculator version, URL, equation source, method, author and generation time.
 
 ## How it works
 
@@ -48,6 +49,7 @@ css/styles.css      styles (light and dark)
 js/equations.js     coefficients as data; Table S3 alternates in `alt`
 js/zscore.js        pure calculation functions
 js/app.js           UI, printable report and copy-to-text
+js/version.js       version and provenance (footer, report, copied text)
 vendor/rough.esm.js rough.js 4.6.6 (MIT), for the sketched Z-bars
 tests/              node:test checks against values from the paper
 docs/               equation audit

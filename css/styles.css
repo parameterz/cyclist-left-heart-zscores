@@ -213,6 +213,10 @@ footer{font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;ga
   .report td.flag{font-weight:600}
   .report td.bar{width:130pt}
   .report svg{display:block;width:130pt;height:14pt}
+  .report .prov{margin:12pt 0 0;padding-top:6pt;border-top:.6pt solid #999;display:grid;grid-template-columns:auto 1fr;gap:1pt 10pt;font-size:8pt;color:#333}
+  .report .prov div{display:contents}
+  .report .prov dt{color:#555;text-transform:uppercase;letter-spacing:.05em;font-size:7pt;padding-top:1pt}
+  .report .prov dd{margin:0}
   .report .notes{margin-top:12pt;font-size:8.5pt;color:#333;display:flex;flex-direction:column;gap:4pt}
 }
 

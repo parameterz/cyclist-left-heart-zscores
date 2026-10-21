@@ -2,6 +2,7 @@
 import rough from "../vendor/rough.esm.js";
 import { EQUATIONS, STATUS } from "./equations.js";
 import { evaluate, normalCdf, percentPredictedAtZ, deriveFromVolumes } from "./zscore.js";
+import { APP, longDate, stamp } from "./version.js";
 
 const $ = (s) => document.querySelector(s);
 const fmt = (x, d) => (Number.isFinite(x) ? x.toFixed(d) : "—");
@@ -318,7 +319,21 @@ function reportData() {
     hr: `${fmt(ath.hr, 0)} bpm (RR ${fmt(ath.rrSec, 3)} s)`,
     pending: rows.some(({ e }) => e.status === "open"),
     anyCalc: rows.some(({ calc }) => calc),
+    generated: stamp(),
   };
+}
+
+// Provenance lines shared by the copied text and the printed report.
+function provenance(generated) {
+  return [
+    "---",
+    `Calculator: ${APP.name} v${APP.version} (${longDate(APP.date)})`,
+    `URL: ${APP.url}`,
+    `Equations: ${APP.equations}`,
+    `Method: ${APP.method}`,
+    `Created by: ${APP.author}`,
+    `Generated: ${generated}`,
+  ];
 }
 
 function reportText() {
@@ -334,6 +349,7 @@ function reportText() {
   lines.push("", "Normal = Z −1.96 to +1.96 (2.5th–97.5th percentile).");
   if (d.anyCalc) lines.push("(calc) = calculated from LVEDV, LVESV and heart rate.");
   if (d.pending) lines.push("* Equation coefficients pending confirmation by the authors.");
+  lines.push("", ...provenance(d.generated));
   return lines.join("\n");
 }
 
@@ -369,8 +385,15 @@ function buildReport() {
       ${d.anyCalc ? "<span><sup>c</sup> Calculated from LVEDV, LVESV and heart rate.</span>" : ""}
       ${d.pending ? "<span>* Equation coefficients pending confirmation by the authors.</span>" : ""}
       <span>Reference population: 181 elite British cyclists, age 22.7 ± 5.5 years; biplane Simpson volumes, ASE linear LV mass, 2D PLAX diameters. May not apply to other populations or methods. Not a substitute for clinical judgment.</span>
-      <span>Generated ${new Date().toLocaleString()} · parameterz.github.io/cyclist-left-heart-zscores</span>
-    </div>`;
+    </div>
+    <dl class="prov">
+      <div><dt>Calculator</dt><dd>${APP.name} v${APP.version} (${longDate(APP.date)})</dd></div>
+      <div><dt>URL</dt><dd>${APP.url}</dd></div>
+      <div><dt>Equations</dt><dd>${APP.equations}</dd></div>
+      <div><dt>Method</dt><dd>${APP.method}</dd></div>
+      <div><dt>Created by</dt><dd>${APP.author}</dd></div>
+      <div><dt>Generated</dt><dd>${d.generated}</dd></div>
+    </dl>`;
 }
 
 function setStatus(msg, ok = false) {
@@ -398,6 +421,9 @@ $("#btn-clear").addEventListener("click", () => {
   render();
   $("#v-" + EQUATIONS[0].id).focus();
 });
+
+// Footer credit from the same version record.
+$("#app-version").textContent = `Version ${APP.version} | ${longDate(APP.date)}`;
 
 buildRows();
 buildRef();
