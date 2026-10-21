@@ -222,3 +222,7 @@ footer{font-size:12.5px;color:var(--muted);display:flex;flex-direction:column;ga
 .calcnote{font-size:11px;line-height:1.25;color:var(--muted);text-align:right}
 .linkbtn{font:inherit;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 @media (max-width:720px){.calcnote{text-align:left}}
+
+/* Author credit */
+.credit{margin-top:6px;padding-top:12px;border-top:1px solid var(--rule);color:var(--ink);line-height:1.6}
+.credit strong{font-weight:600}
