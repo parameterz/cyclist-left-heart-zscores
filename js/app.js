@@ -169,7 +169,7 @@ function buildRef() {
     e.alt && key in e.alt ? `<td class="q">${f(e[key])} / ${f(e.alt[key])}</td>` : `<td>${f(e[key])}</td>`;
   const exp = (x) => (x === 0 ? "—" : String(x));
   const fac = (x) => (x === 1 ? "—" : x.toFixed(2));
-  $("#reftable").innerHTML = `<thead><tr><th>Measurement</th><th>C</th><th>Height exp.</th><th>Male ×</th><th>Endurance ×</th><th>RR exp.</th><th>k (= 1/σ)</th><th>σ log</th></tr></thead><tbody>${
+  $("#reftable").innerHTML = `<thead><tr><th>Measurement</th><th>C</th><th>Height exp.</th><th>Male ×</th><th>Endurance ×</th><th>RR exp.</th><th><span class="sym">k</span> (= 1/<span class="sym">σ</span>)</th><th><span class="sym">σ</span> <span class="sym">log</span></th></tr></thead><tbody>${
     EQUATIONS.map((e) => `<tr><td>${e.abbr} (${e.unit})</td>${cell(e, "C", (x) => x.toFixed(2))}${cell(e, "a", exp)}${cell(e, "male", fac)}${cell(e, "end", fac)}${cell(e, "b", exp)}<td>${e.k.toFixed(2)}</td><td>${(1 / e.k).toFixed(3)}</td></tr>`).join("")
   }</tbody>`;
 }
